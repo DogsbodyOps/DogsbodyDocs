@@ -2,4 +2,7 @@ site_name: DogsbodyDocs
 nav:
   - Home: index.md
   - About: about.md
+  - Docs:
+      - Fail2ban Setup: fail2ban-setup.md
+      - FTP RCA: Tradex_FTP-RCA-20260205.md
 theme: readthedocs

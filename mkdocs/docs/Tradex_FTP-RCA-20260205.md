@@ -1,0 +1,81 @@
+# Root Cause Analysis - SFTP Service Outage (Tradex-FTP7)
+
+**Date:** 2026-02-05  
+**Server:** Tradex-FTP7.prod.cloud.local  
+**Duration:** ~90 minutes (08:50 - 10:20 approx)  
+**Prepared by:** Infra Team  
+**Incident Responders:** Jenny Goldring, Aaron Watson, Ian Shelton, Mark Everson
+
+---
+
+## Executive Summary
+
+On February 5th, 2026, the Tradex-FTP7 SFTP service experienced a complete outage affecting all ~800 customers due to 100% CPU utilization across 32 cores. The root cause was a 2GB `/var/log/btmp` file (failed login attempts) being read by every new SSH connection during PAM authentication, creating a cascading performance failure. The issue was resolved by truncating the btmp file to 10MB and implementing logrotate limits to prevent recurrence.
+
+**This is the 4th occurrence of this issue.** Previous incidents did not result in preventive measures being implemented.
+
+---
+
+## Incident Timeline
+
+| Time | Event |
+|------|-------|
+| ~08:50 | Customer reports begin - unreliable connections, timeouts, inability to connect |
+| ~08:55 | Infra team investigates, confirms 100% CPU usage on all 32 cores |
+| ~09:00 | CPU cores increased to 32 (from previous count), no improvement |
+| ~09:05 | `top` analysis shows multiple sshd processes consuming CPU |
+| ~09:10 | Session analysis shows several customers with 400+ open sessions |
+| ~09:15 | `lsof -p 34528` reveals 2GB `/var/log/btmp` file open |
+| ~09:20 | Decision made to truncate btmp file to 10MB |
+| ~09:35 | Mitigation applied - btmp truncated, CPU usage returns to normal |
+| ~09:45 | Logrotate configuration updated to limit btmp to 100MB max |
+| ~10:20 | Service fully restored, customers able to connect reliably |
+
+---
+
+## Root Cause Analysis
+
+### Primary Root Cause
+The `/var/log/btmp` file grew to **2,092,152,960 bytes (~2GB)** due to sustained SSH brute-force attacks logging failed authentication attempts. Every new SSH/SFTP connection attempt triggers PAM authentication, which reads the entire btmp file, causing:
+
+- Each sshd process to consume massive CPU cycles reading 2GB from disk
+- With 32 cores at 100%, hundreds of concurrent connection attempts created a resource exhaustion scenario
+- Legitimate customer connections timing out or failing entirely
+
+### Contributing Factors
+1. **No automated btmp rotation/cleanup** - Default logrotate configuration doesn't aggressively manage btmp size
+2. **No fail2ban or rate limiting** - Brute-force attacks could continue indefinitely without being blocked
+3. **Password authentication enabled** - Attack surface includes password-based attacks, not just key-based auth
+4. **No IP allowlisting** - All internet IPs can attempt connections
+5. **Standard SSH ports via HAProxy** - Easily discoverable and targetable
+6. **Multiple customers with 400+ open sessions** - Legitimate usage patterns adding strain (minor contribution)
+
+### Systemic Root Cause
+**This is the 4th time this has happened.** Previous incidents resulted in discussions about mitigation but no action was taken due to:
+- "It's working now so why bother" attitude
+- Concerns about customer impact
+- Lack of urgency once immediate crisis resolved
+
+---
+
+## Impact Assessment
+
+**Severity:** Critical  
+**Customer Impact:** Complete service outage  
+**Users Affected:** ~800 customers  
+**Duration:** ~90 minutes  
+
+### Business Impact
+- All SFTP file transfers halted during outage window
+- Customer timeouts and connection failures
+- Potential SLA breaches (depending on agreements)
+- Emergency response required, pulling multiple team members
+- Reputational risk from repeated incidents
+
+---
+
+## Resolution Steps
+
+1. **Immediate Mitigation:**
+   ```bash
+   sudo truncate -s 10M /var/log/btmp

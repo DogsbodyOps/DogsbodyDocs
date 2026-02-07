@@ -1,0 +1,26 @@
+# give me a template azure pipelines file for running the mkdocs build command, then running the docker build and pushing to a repo.
+trigger:
+- main
+pool:
+  vmImage: 'ubuntu-latest'  
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.x'
+    addToPath: true
+- script: |
+    python -m pip install --upgrade pip
+    pip install mkdocs
+  displayName: 'Install MkDocs'
+- script: |
+    mkdocs build --site-dir mkdocs/site
+  displayName: 'Build MkDocs Site'
+- task: Docker@2
+  inputs:
+    containerRegistry: 'yourDockerRegistryServiceConnection'
+    repository: 'yourDockerRepository'
+    command: 'buildAndPush'
+    Dockerfile: 'Dockerfile'
+    tags: 'latest'
+  displayName: 'Build and Push Docker Image'
+
