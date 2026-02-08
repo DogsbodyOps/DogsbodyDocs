@@ -13,7 +13,7 @@ steps:
     pip install mkdocs
   displayName: 'Install MkDocs'
 - script: |
-    mkdocs build --site-dir mkdocs/site
+    mkdocs build -f mkdocs/mkdocs.yml --site-dir mkdocs/site
   displayName: 'Build MkDocs Site'
 
 - task: Docker@2
