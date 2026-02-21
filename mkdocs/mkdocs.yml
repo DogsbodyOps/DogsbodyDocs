@@ -3,6 +3,9 @@ nav:
   - Home: index.md
   - About: about.md
   - Docs:
-      - Fail2ban Setup: fail2ban-setup.md
-      - FTP RCA: Tradex_FTP-RCA-20260205.md
+  - Incidents:
+    - FTP Incident:
+      - FTP Incident RCA: FTP-RCA-20260205.md
+  - Projects: 
+    - fail2ban setup: fail2ban-setup.md
 theme: readthedocs
