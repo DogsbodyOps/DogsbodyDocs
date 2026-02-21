@@ -1,12 +1,11 @@
 # Fail2ban Setup
 
 ## Context
-As part of the resolution of the FTP incident, it was brought up again that we should really do something about rate-limiting and allow/deny-listing after the deprecatino of the allowhosts configuration used in CentOS 7.
-
+As part of the resolution of the FTP incident, it was brought up again that we should really do something about rate-limiting and allow/deny-listing after the deprecatino of the allowhosts configuration used in CentOS 7  
 This conversation settled on implementing fail2ban, this will need some testing, as failure to implement correctly will cause significant issues with customer access.
 ---
 ## Initial Testing
-Initial testimg will consist of setting up an open ftp/sftp server with password authentication, fail2ban will then be installed.
+Initial testing will consist of setting up an open ftp/sftp server with password authentication, fail2ban will then be installed.
 
 We will setup fail2ban to use the dummy action, as below.
 
@@ -17,8 +16,16 @@ banaction = dummy
 
 [sshd]
 enabled = true
-# customize the dummy log path
+
+# Customise bantime and the factor by which it multiplies, this should double it each time.
+bantime = 3600
+bantime.factor = 1
+
+# Customise the dummy log path
 banaction = dummy[target=/var/log/fail2ban.dummy.log]
+
+# List of ignored IP's, means they shouldnt get banned, ever.
+ignoreip = 10.64.0.0/12 217.155.49.58
 ```
 
 This should allow us to test for any edge cases and configure rate limiting at an appropriate level before implementing firewalld actions, similr to the below.
